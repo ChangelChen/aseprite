@@ -1,0 +1,64 @@
+name: Build Aseprite Windows
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Install Skia
+        shell: bash
+        run: |
+          skia_url=$(source laf/misc/skia-url.sh | xargs)
+          skia_file=$(basename "$skia_url")
+
+          curl --ssl-revoke-best-effort -L \
+            -o "$skia_file" \
+            "$skia_url"
+
+          unzip "$skia_file" -d skia
+
+      - name: Install Ninja
+        uses: aseprite/get-ninja@main
+
+      - name: Setup MSVC
+        uses: TheMrMilchmann/setup-msvc-dev@v4
+        with:
+          arch: x64
+
+      - name: Configure
+        shell: bash
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DENABLE_TESTS=OFF \
+            -DENABLE_SCRIPTING=ON \
+            -DLAF_BACKEND=skia \
+            -DSKIA_DIR=$(realpath skia) \
+            -DSKIA_LIBRARY_DIR=$(realpath skia/out/Release-x64)
+
+      - name: Build
+        shell: bash
+        run: |
+          cd build
+          ninja aseprite
+
+      - name: Package
+        shell: powershell
+        run: |
+          Compress-Archive `
+            -Path build/bin/* `
+            -DestinationPath aseprite-windows-x64.zip
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: aseprite-windows-x64
+          path: aseprite-windows-x64.zip
