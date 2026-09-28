@@ -65,7 +65,7 @@ jobs:
             -DestinationPath aseprite-windows-x64.zip
 
       - name: Upload
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: aseprite-windows-x64
           path: aseprite-windows-x64.zip
