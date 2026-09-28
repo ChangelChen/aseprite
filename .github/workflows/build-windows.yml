@@ -2,10 +2,14 @@ name: Build Aseprite Windows
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/build.yml'
 
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -16,7 +20,9 @@ jobs:
       - name: Install Skia
         shell: bash
         run: |
-          skia_url=$(source laf/misc/skia-url.sh | xargs)
+          this_dir=$(cygpath "${{ github.workspace }}")
+
+          skia_url=$(source "$this_dir/laf/misc/skia-url.sh" | xargs)
           skia_file=$(basename "$skia_url")
 
           curl --ssl-revoke-best-effort -L \
@@ -40,6 +46,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DENABLE_TESTS=OFF \
             -DENABLE_SCRIPTING=ON \
+            -DENABLE_CCACHE=OFF \
             -DLAF_BACKEND=skia \
             -DSKIA_DIR=$(realpath skia) \
             -DSKIA_LIBRARY_DIR=$(realpath skia/out/Release-x64)
